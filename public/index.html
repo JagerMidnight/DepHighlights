@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jager Highlights</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            margin: 0;
+            background-color: #f3f4f6;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        .loading-spinner {
+            border: 4px solid rgba(0, 0, 0, 0.1);
+            border-left-color: #2563eb;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body class="bg-gray-100 text-gray-900">
+    <header class="bg-gradient-to-r from-blue-600 to-indigo-700 text-white p-6 shadow-lg rounded-b-lg">
+        <div class="container mx-auto flex justify-between items-center flex-wrap">
+            <h1 class="text-4xl font-extrabold tracking-tight mb-2 md:mb-0">Jager Highlights</h1>
+            <nav class="flex items-center space-x-4 flex-wrap">
+                <a href="./About" class="text-white hover:text-blue-200 transition duration-300 ease-in-out text-lg font-medium py-2 px-4 rounded-md border border-transparent hover:border-blue-200">About</a>
+                <button id="view-all-button" class="bg-blue-500 hover:bg-blue-400 text-white font-bold py-2 px-4 rounded-md transition duration-300 ease-in-out text-lg">View All</button>
+                <a href="https://github.com/JagerMidnight/Highlights" target="_blank" rel="noopener noreferrer" class="bg-gray-700 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded-md transition duration-300 ease-in-out text-lg">Repo</a>
+            </nav>
+        </div>
+    </header>
+
+    <main class="container mx-auto mt-8 p-4 flex-grow">
+        <div class="flex flex-col md:flex-row items-center justify-center mb-8 space-y-4 md:space-y-0 md:space-x-4">
+            <input type="text" id="game-input" placeholder="Enter game name" class="p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-lg w-full md:w-auto flex-grow max-w-md">
+            <button id="fetch-game-button" class="bg-green-600 hover:bg-green-500 text-white font-bold py-3 px-6 rounded-md shadow-md transition duration-300 ease-in-out text-lg w-full md:w-auto">Go</button>
+        </div>
+
+        <div id="loading" class="flex justify-center items-center py-10 hidden">
+            <div class="loading-spinner"></div>
+            <p class="ml-4 text-xl text-gray-600">Loading highlights...</p>
+        </div>
+
+        <div id="highlights-container" class="min-h-[200px]">
+        </div>
+
+        <div id="error-message" class="hidden bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative" role="alert">
+            <strong class="font-bold">Error!</strong>
+            <span class="block sm:inline" id="error-text"></span>
+        </div>
+    </main>
+
+    <footer class="bg-gray-800 text-white p-4 mt-8 rounded-t-lg shadow-inner">
+        <div class="container mx-auto text-center text-gray-400">
+            &copy; 2025 Jager Highlights. All rights reserved.
+        </div>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const highlightsContainer = document.getElementById('highlights-container');
+            const loadingIndicator = document.getElementById('loading');
+            const errorMessageDiv = document.getElementById('error-message');
+            const errorTextSpan = document.getElementById('error-text');
+            const gameInput = document.getElementById('game-input');
+            const fetchGameButton = document.getElementById('fetch-game-button');
+            const viewAllButton = document.getElementById('view-all-button');
+
+            const fetchAndDisplayHighlights = async (gameName = null) => {
+                loadingIndicator.classList.remove('hidden');
+                highlightsContainer.innerHTML = '';
+                errorMessageDiv.classList.add('hidden');
+
+                let apiUrl = '/api/fetchHighlights';
+                if (gameName) {
+                    apiUrl += `?game=${encodeURIComponent(gameName)}`;
+                }
+
+                try {
+                    const response = await fetch(apiUrl);
+
+                    if (!response.ok) {
+                        const errorDetails = await response.text();
+                        throw new Error(`HTTP error! Status: ${response.status}, Details: ${errorDetails}`);
+                    }
+
+                    const htmlContent = await response.text();
+                    highlightsContainer.innerHTML = htmlContent;
+
+                } catch (error) {
+                    console.error('Failed to fetch highlights:', error);
+                    errorTextSpan.textContent = `Could not load highlights. Please try again later. (${error.message})`;
+                    errorMessageDiv.classList.remove('hidden');
+                } finally {
+                    loadingIndicator.classList.add('hidden');
+                }
+            };
+
+            fetchGameButton.addEventListener('click', () => {
+                const game = gameInput.value.trim();
+                const alphanumericRegex = /^[a-zA-Z0-9\s]+$/;
+
+                if (game) {
+                    if (alphanumericRegex.test(game)) {
+                        fetchAndDisplayHighlights(game);
+                    } else {
+                        errorTextSpan.textContent = 'Game name can only contain alphanumeric characters and spaces.';
+                        errorMessageDiv.classList.remove('hidden');
+                        highlightsContainer.innerHTML = '';
+                    }
+                } else {
+                    errorTextSpan.textContent = 'Please enter a game name to search.';
+                    errorMessageDiv.classList.remove('hidden');
+                    highlightsContainer.innerHTML = '';
+                }
+            });
+
+            viewAllButton.addEventListener('click', () => {
+                fetchAndDisplayHighlights();
+            });
+        });
+    </script>
+</body>
+</html>
